@@ -1,0 +1,197 @@
+<html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <style>
+        body {
+            margin: 0px;
+            font-family: Tahoma, Helvetica, Arial, "Microsoft Yahei", STXihei, sans-serif;
+        }
+
+        .navLogo {
+            float: left;
+            margin: auto;
+            padding: 10px;
+            font-size: 18px;
+        }
+
+        .header {
+            width: 100%;
+            height: 260px;
+            background-color: #232323;
+            color: #FFF
+        }
+
+        .container {
+            width: 70%;
+            margin: 0 auto;
+            text-align: center;
+            padding: 10px;
+        }
+
+        .container input[type="text"] {
+
+            font-family: Tahoma, Helvetica, Arial, "Microsoft Yahei", STXihei, sans-serif;
+            background: rgba(255, 255, 255, .1);
+            border: 0;
+            border-radius: 4px;
+            font-size: 28px;
+            margin: 0;
+            outline: 0;
+            padding: 8px;
+            box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            -moz-box-sizing: border-box;
+            background-color: #e8eeef;
+            color: #000;
+            -webkit-box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03) inset;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03) inset;
+            width: 260px;
+        }
+
+        #navigation {
+            background-color: #000;
+            color: #ffffff;
+            width: 100%;
+            height: 44px;
+        }
+
+        #dropDownContainer {
+            background-color: #e8eeef;
+            border: 0;
+            border-radius: 4px;
+            font-size: 28px;
+            margin: 0 auto;
+            outline: 0;
+            padding: 8px;
+            width: 300px;
+            margin-top: 16px;
+
+            z-index: 255;
+            position: relative;
+
+            -webkit-box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03) inset;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.03) inset;
+            display: none;
+        }
+
+        #dropDownContainer ul {
+            text-align: left;
+            color: #000;
+            padding: 4px;
+            margin: 0;
+            font-size: 20px;
+            padding-left: 8px;
+        }
+
+        #dropDownContainer ul:hover {
+            background-color: #c1c1c170;
+        }
+
+        #branchDetails {
+            display: none;
+            z-index: 1;
+        }
+
+        img {
+
+            max-width: 100%;
+            height: auto;
+        }
+    </style>
+
+    <script>
+        let branchData = []
+        let filteredBranch = []
+        $(() => {
+            $.get("https://api.myjson.com/bins/1cuxob", (data, status) => {
+                branchData = data.arr
+            })
+            $('input').on('keyup', function () {
+                let query = $('#searchBox').val()
+                if (query.length)
+                    applyFilter(query)
+                else
+                    clearSelection()
+            });
+
+            $('#dropDownContainer ul').on('click', () => {})
+        })
+
+        let applyFilter = (query) => {
+            let filtered = branchData.filter(branch => branch.name.indexOf(query) != -1 || branch.addresses[0].address
+                .indexOf(query) != -1)
+            clearSelection()
+            filteredBranch = filtered
+            if (filtered.length) {
+                $('#dropDownContainer').show()
+                for (i = 0; i < filtered.length; i++) {
+                    addSelection(filtered[i], i)
+                }
+            }
+        }
+
+        let clearSelection = () => {
+            $('#dropDownContainer').html('')
+            filteredBranch = []
+            $('#dropDownContainer').hide()
+        }
+
+        let addSelection = (ele, indx) => {
+            let template = `<ul onClick='branchOnClick(${indx});'>${ele.name}</ul>`
+            $('#dropDownContainer').append(template)
+        }
+
+        let branchOnClick = (indx) => {
+            let target = filteredBranch[parseInt(indx)]
+            $('#searchBox').val(target.name)
+            let GMAP_TEMPLATE =
+                `https://maps.googleapis.com/maps/api/staticmap?center=${target.latitude},${target.longitude}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:M%7C${target.latitude},${target.longitude}&key=AIzaSyAx82_53uOtNEpJOMxwdh4m6l3o0gofcgk`
+            let QR_TEMPLATE =
+                `https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=0000000${target.storeid}000013`
+            $('#qr-static').attr('src', QR_TEMPLATE)
+            $('#gmap-static').attr('src', GMAP_TEMPLATE)
+            $('#branch-details').html(`${target.addresses[0].address}<br>Tel: ${target.telephone}`)
+            $('#branchDetails').show()
+            clearSelection()
+        }
+    </script>
+
+
+</head>
+
+<body>
+    <div id="navigation">
+        <span class="navLogo">
+            M Gay 打尖 QRCode Finder by bu5hit
+        </span>
+    </div>
+    <div class="header">
+        <div class="container">
+            <h1>輸入最近你嘅 M 記地址開始搜尋：</h1>
+            <input type="text" name="searchBox" id="searchBox" placeholder="邊度？" autocomplete="off">
+            <div id="dropDownContainer">
+            </div>
+        </div>
+    </div>
+
+    <div id="branchDetails" class="container">
+        <h2>
+            手機訂餐簽到 QR Code
+        </h2>
+        <img id="qr-static" src="">
+        <br>
+
+        <h2>
+            分店資料
+        </h2>
+        <div id="branch-details"></div>
+        <img id="gmap-static" src="">
+        <br>
+
+
+    </div>
+</body>
+
+</html>
