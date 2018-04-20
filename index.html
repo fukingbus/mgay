@@ -2,6 +2,7 @@
 
 <head>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>M Gay 打尖 QRCode Finder by bu5hit</title>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <style>
         body {
@@ -102,11 +103,31 @@
     </style>
 
     <script>
+        function getDistanceFromLatLonInKm(lat1,lon1,lat2,lon2) {
+            var R = 6371; // Radius of the earth in km
+            var dLat = deg2rad(lat2-lat1);  // deg2rad below
+            var dLon = deg2rad(lon2-lon1); 
+            var a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2)
+                ; 
+            var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)); 
+            var d = R * c; // Distance in km
+            return d;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI/180)
+        }
+
         let branchData = []
         let filteredBranch = []
         $(() => {
             $.get("https://api.myjson.com/bins/1cuxob", (data, status) => {
                 branchData = data.arr
+                $('#searchBox').attr({ placeholder: '邊度？', disabled: false })
+                $('#gpsButton').attr('disabled', false);
             })
             $('input').on('keyup', function () {
                 let query = $('#searchBox').val()
@@ -117,6 +138,7 @@
             });
 
             $('#dropDownContainer ul').on('click', () => {})
+            $('#gpsButton').on('click', getClosestMGay);
         })
 
         let applyFilter = (query) => {
@@ -145,16 +167,47 @@
 
         let branchOnClick = (indx) => {
             let target = filteredBranch[parseInt(indx)]
-            $('#searchBox').val(target.name)
+            branchOnSelect(target)
+        }
+
+        let branchOnSelect = (branch) => {
+            $('#searchBox').val(branch.name)
             let GMAP_TEMPLATE =
-                `https://maps.googleapis.com/maps/api/staticmap?center=${target.latitude},${target.longitude}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:M%7C${target.latitude},${target.longitude}&key=AIzaSyAx82_53uOtNEpJOMxwdh4m6l3o0gofcgk`
+                `https://maps.googleapis.com/maps/api/staticmap?center=${branch.latitude},${branch.longitude}&zoom=18&size=600x300&maptype=roadmap&markers=color:red%7Clabel:M%7C${branch.latitude},${branch.longitude}&key=AIzaSyAx82_53uOtNEpJOMxwdh4m6l3o0gofcgk`
             let QR_TEMPLATE =
-                `https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=0000000${target.storeid}000013`
+                `https://chart.googleapis.com/chart?cht=qr&chs=400x400&chl=0000000${branch.storeid}000013`
             $('#qr-static').attr('src', QR_TEMPLATE)
             $('#gmap-static').attr('src', GMAP_TEMPLATE)
-            $('#branch-details').html(`${target.addresses[0].address}<br>Tel: ${target.telephone}`)
+            $('#branch-details').html(`${branch.addresses[0].address}<br>Tel: ${branch.telephone}`)
             $('#branchDetails').show()
             clearSelection()
+        }
+
+        let getClosestMGay = () => {
+            $('#gpsButton').text('拎緊GPS…').attr('disabled', true);
+            if ("geolocation" in navigator) {
+                navigator.geolocation.getCurrentPosition(({ coords }) => {
+                    const branchesWithDistance = branchData.map((branch) => {
+                        const distance = getDistanceFromLatLonInKm(coords.latitude, coords.longitude, branch.latitude, branch.longitude)
+                        return {
+                            ...branch,
+                            distance,
+                        }
+                    })
+                    const closest = branchesWithDistance.reduce((prev, cur) => {
+                        return prev.distance > cur.distance ? cur : prev
+                    }, { distance: Infinity });
+                    branchOnSelect(closest);
+                    $('#gpsButton').text('最近M記').attr('disabled', false);
+                }, (err) => {
+                    console.log(err);
+                    alert('拎GPS出錯')
+                    $('#gpsButton').text('最近M記').attr('disabled', false);
+                });
+            } else {
+                alert('你的瀏覽器不支援GPS');
+                $('#gpsButton').text('最近M記').attr('disabled', false);
+            }
         }
     </script>
 
@@ -170,7 +223,8 @@
     <div class="header">
         <div class="container">
             <h1>輸入最近你嘅 M 記地址開始搜尋：</h1>
-            <input type="text" name="searchBox" id="searchBox" placeholder="邊度？" autocomplete="off">
+            <input type="text" name="searchBox" id="searchBox" placeholder="載入中…" autocomplete="off" disabled>
+            <button id="gpsButton" disabled>最近M記</button>
             <div id="dropDownContainer">
             </div>
         </div>
