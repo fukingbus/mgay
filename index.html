@@ -124,7 +124,7 @@
         let branchData = []
         let filteredBranch = []
         $(() => {
-            $.get("https://hastebin.com/ocuqemapoy.json", (data, status) => {
+            $.get("https://hastebin.com/raw/ocuqemapoy.json", (data, status) => {
                 branchData = data.arr
                 $('#searchBox').attr({ placeholder: '邊度？', disabled: false })
                 $('#gpsButton').attr('disabled', false);
